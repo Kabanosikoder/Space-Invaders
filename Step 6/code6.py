@@ -144,8 +144,11 @@ window.update()
 
 turtle.done()
 
-# 1.
-# 2.
-# 3.
-# 4.
-# 5
+# 1. Pour verifier on utilise:
+#   if alien.ycor() < -300:
+#       global game_on
+#       game_on = False
+# 2. game_on
+# 3. Il est important de mettre à jour l’écran pour affiché le texte
+# 4. On pourrait afficher "Appuyer sur la barre d'espace pour recommencer" puis tout effacer et redemarrer le jeu
+# 5. Si on ne fait pas de pause la boucle continue de s'exécuter
