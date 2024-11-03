@@ -1,3 +1,4 @@
 # Space-Invaders
 Creating a Space Invader game for Computer Science class.
-This is in French
+Some of this is in French.
+This game is surprisingly difficult.
