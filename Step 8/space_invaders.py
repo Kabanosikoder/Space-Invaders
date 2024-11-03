@@ -6,6 +6,19 @@ import time
 import pygame
 import json
 
+# Asking for player name for highscore saving
+try:
+    player_name = input("Enter your username: ")
+
+    # Attempt to convert to int to check if it's a pure number
+    if player_name.isdigit():
+        raise ValueError("Username cannot be only numbers.")
+
+    print("Username accepted.")
+
+except ValueError as e:
+    print(f"Invalid input: {e}")
+
 # Initializers for pygame and sounds
 pygame.init()
 pygame.mixer.pre_init(44100, -16, 1, 512)
@@ -160,7 +173,7 @@ def create_alien_laser(alien):
     alien_laser.penup()
     alien_laser.color("yellow")
     alien_laser.shape("square")
-    alien_laser.shapesize(stretch_wid=0.5, stretch_len=2)
+    alien_laser.shapesize(stretch_wid=0.25, stretch_len=1)
     alien_laser.setheading(270)
     alien_laser.setposition(alien.xcor(), alien.ycor() - 20)
     alien_lasers.append(alien_laser)
@@ -285,21 +298,21 @@ def difficulty_menu():
     def set_difficulty(level):
         global ALIEN_SPEED, ALIEN_SPAWN_INTERVAL, LASER_SPEED, DIFFICULTY_LEVEL, CANNON_FIRE_RATE, ALIEN_FIRE_RATE
         if level == 1:
-            ALIEN_SPEED = 0.5
-            ALIEN_SPAWN_INTERVAL = 1
+            ALIEN_SPEED = 0.25
+            ALIEN_SPAWN_INTERVAL = 3
             LASER_SPEED = 1.2
-            CANNON_FIRE_RATE = 0.6
-            ALIEN_FIRE_RATE = 3
+            CANNON_FIRE_RATE = 0.4
+            ALIEN_FIRE_RATE = 2.25
         elif level == 2:
-            ALIEN_SPEED = 0.6
-            ALIEN_SPAWN_INTERVAL = 1.25
-            LASER_SPEED = 0.75
+            ALIEN_SPEED = 0.75
+            ALIEN_SPAWN_INTERVAL = 1
+            LASER_SPEED = 1
             CANNON_FIRE_RATE = 0.5
-            ALIEN_FIRE_RATE = 2.5
+            ALIEN_FIRE_RATE = 1.75
         elif level == 3:
             ALIEN_SPEED = 0.8
             ALIEN_SPAWN_INTERVAL = 1.75
-            LASER_SPEED = 0.75
+            LASER_SPEED = 0.6
             CANNON_FIRE_RATE = 0.4
             ALIEN_FIRE_RATE = 2
         DIFFICULTY_LEVEL = level
@@ -355,4 +368,13 @@ game_over.hideturtle()
 game_over.write(f"Score: {SCORE}", align="center", font=("Courier", 30, "bold"))
 
 window.update()
+
+# Saves score in a .json file
+def save_score():
+    with open("highscore.json", "w") as f:
+        json.dump({"player_username": player_name}, f)
+        json.dump({"highscore": SCORE}, f)
+        json.dump({"difficulty_level": DIFFICULTY_LEVEL}, f)
+save_score()
+
 turtle.done()
