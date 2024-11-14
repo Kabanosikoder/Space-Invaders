@@ -26,3 +26,7 @@ Le jeu : les Aliens valent 10 points, ils tirent des lasers alors faites attent
 
 Contrôles : flèche gauche/droite pour se déplacer, barre d'espace pour tirer un laser 
 Amusez-vous !
+
+
+
+I have some ideas to improve the game, for example dividing the functions into classes (grouping them together and creating a class for "player_movement".
