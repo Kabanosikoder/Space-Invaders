@@ -1,67 +1,88 @@
 # My Space Invaders :D
-# cleaning up this code took a long time -_-
+# Cleaned up code with consistent structure, enhanced logic, and improved user interactions.
+
 import turtle
 import random
 import time
 import pygame
 import json
 
-# Asking for player name for highscore saving
-try:
-    player_name = input("Enter your username: ")
+###############################################################################
+# Player Name Handling
+###############################################################################
+def get_player_name():
+    """
+    Prompt the user for a valid username.
+    Ensures the username is not purely numeric.
+    """
+    while True:
+        try:
+            name = input("Enter your username: ").strip()
+            if not name:
+                raise ValueError("Username cannot be empty.")
+            if name.isdigit():
+                raise ValueError("Username cannot be only numbers.")
+            print("Username accepted.")
+            return name
+        except ValueError as ve:
+            print(f"Invalid username: {ve}")
 
-    # Attempt to convert to int to check if it's a pure number
-    if player_name.isdigit():
-        raise ValueError("Username cannot be only numbers.")
+player_name = get_player_name()
 
-    print("Username accepted.")
-
-except ValueError as e:
-    print(f"Invalid input: {e}")
-
-# Initializers for pygame and sounds
+###############################################################################
+# Pygame and Sounds Initialization
+###############################################################################
 pygame.init()
 pygame.mixer.pre_init(44100, -16, 1, 512)
 pygame.mixer.init()
 
-# Charger les sons
 pew_sound = pygame.mixer.Sound('laser.wav')
 pew_sound.set_volume(0.3)
 collision_sound = pygame.mixer.Sound('collision.wav')
 collision_sound.set_volume(0.55)
 game_over_sound = pygame.mixer.Sound('game_over.wav')
+game_over_sound.set_volume(0.7)
 
-# Paramètres modifiable
-CANNON_SPEED = 10
-LASER_SPEED = 0.9
-DETECTION_RADIUS = 15
+###############################################################################
+# Configurable Game Parameters
+###############################################################################
+CANNON_SPEED        = 10
+LASER_SPEED         = 0.9
+DETECTION_RADIUS    = 15
+ALIEN_SPEED         = 0.5
+ALIEN_SPAWN_INTERVAL= 1.2
+ALIEN_FIRE_RATE     = 2.0    # seconds between alien shots
+DIFFICULTY_LEVEL    = 0
 
-ALIEN_SPEED = 0.5
-ALIEN_SPAWN_INTERVAL = 1.2
-ALIEN_FIRE_RATE = 2  # Alien fire rate in seconds
+SCORE               = 0
+LIVES               = 3
 
-DIFFICULTY_LEVEL = 0
-SCORE = 0
-LIVES = 3
-CANNON_FIRE_RATE = 0.5  # Player fire rate in seconds
-last_cannon_shot_time = 0
-alien_last_shot_time = 0
+CANNON_FIRE_RATE    = 0.5    # Player can shoot at intervals of 0.5s
+last_cannon_shot_time  = 0
+alien_last_shot_time   = 0
 
-# Game logic handling
-lasers = []
-alien_lasers = []
-aliens = []
-game_on = True  # Variable booléenne pour signaler la fin du jeu
-start_time = time.time()
+###############################################################################
+# Game Data Structures
+###############################################################################
+lasers        = []
+alien_lasers  = []
+aliens        = []
 
-# Configuration de la fenêtre
+game_on       = True
+start_time    = time.time()
+
+###############################################################################
+# Turtle Window Setup
+###############################################################################
 window = turtle.Screen()
 window.setup(width=800, height=600)
-window.bgpic("space_background.gif")
+window.bgpic("space_background.gif")  # Ensure this file is in your directory
 window.title("Space Invaders")
-window.tracer(0) #
+window.tracer(0)
 
-# Création de la partie inférieure du cannon
+###############################################################################
+# Cannon Setup
+###############################################################################
 cannon = turtle.Turtle()
 cannon.penup()
 cannon.color("white")
@@ -69,27 +90,31 @@ cannon.shape("square")
 cannon.setposition(0, -230)
 cannon.shapesize(stretch_wid=1.5, stretch_len=3)
 
-# Création de la partie supérieure du canon
 def create_cannon_top():
-    part2 = turtle.Turtle()
-    part2.shape("square")
-    part2.color("white")
-    part2.penup()
-    part2.speed(0)
-    part2.setposition(0, -210)
-    part2.shapesize(stretch_wid=1, stretch_len=0.75)
-    part2.left(90)
-    return part2
-part2 = create_cannon_top()
+    """
+    Create the upper part of the cannon sprite.
+    """
+    cannon_top = turtle.Turtle()
+    cannon_top.shape("square")
+    cannon_top.color("white")
+    cannon_top.penup()
+    cannon_top.speed(0)
+    cannon_top.setposition(0, -210)
+    cannon_top.shapesize(stretch_wid=1, stretch_len=0.75)
+    cannon_top.left(90)
+    return cannon_top
 
-# Affichage du temps et du score
+cannon_top = create_cannon_top()
+
+###############################################################################
+# UI Display: Score, Time, Health Bar
+###############################################################################
 score_display = turtle.Turtle()
 score_display.penup()
 score_display.hideturtle()
 score_display.setposition(350, 250)
 score_display.color("white")
 
-# Health bar
 health_bar = turtle.Turtle()
 health_bar.hideturtle()
 health_bar.penup()
@@ -97,33 +122,47 @@ health_bar.setposition(-350, 260)
 health_bar.pendown()
 health_bar.width(20)
 
-# it's in the name lol
 def update_health_bar():
+    """
+    Render the health bar based on the player's remaining lives.
+    """
     health_bar.clear()
     health_bar.penup()
     health_bar.setposition(-350, 260)
     health_bar.pendown()
     health_bar.color("green")
+    # 100 px per life (or choose your preferred scaling)
     health_bar.forward(100 * LIVES)
 
-# Mettre à jour le score, le temps et les vies
 def update_display():
+    """
+    Update the top-right text showing elapsed time & score, plus refresh the health bar.
+    """
     elapsed_time = time.time() - start_time
     score_display.clear()
-    score_display.write(f"Temps : {elapsed_time:.1f}s\nScore : {SCORE}",
-                        align="right", font=("Courier", 16, "normal"))
+    score_display.write(
+        f"Time: {elapsed_time:.1f}s\nScore: {SCORE}",
+        align="right",
+        font=("Courier", 16, "normal")
+    )
     update_health_bar()
 
-# it's also in the name
+###############################################################################
+# Alien Setup
+###############################################################################
+window.addshape("alien_texture.gif")  # Provide an actual .gif file in the directory
+
 def alien_spawn_location_randomizer():
-         return random.randint(-150, 150)
+    """
+    Returns a random X position for an alien to spawn horizontally within -150..150
+    """
+    return random.randint(-150, 150)
 
-window.addshape("alien_texture.gif") # registering the image as a shape
-# !!REMINDER: to register all textures as shapes before assigning the shape, took me way too long to figure this out
-
-# Création d’un extraterrestre
 def create_alien():
-    global alien
+    """
+    Create an alien turtle with the specified shape & initial position,
+    then add it to the aliens list.
+    """
     alien = turtle.Turtle()
     alien.penup()
     alien.shape("alien_texture.gif")
@@ -133,28 +172,35 @@ def create_alien():
     aliens.append(alien)
     return alien
 
-# Déplacer l’extraterrestre
 def move_aliens():
-    global ALIEN_SPEED
+    """
+    Move each alien horizontally. If hitting the screen boundary, reverse direction.
+    Also, if an alien goes below a certain Y, game ends.
+    """
+    global ALIEN_SPEED, game_on
     for alien in aliens:
         alien.setx(alien.xcor() + ALIEN_SPEED)
-        # Inverts direction when aliens touch the borders of the screen
+        # Invert direction and move all aliens down when one hits the boundary
         if alien.xcor() > 390 or alien.xcor() < -390:
             ALIEN_SPEED = -ALIEN_SPEED
-            # Makes the aliens go down by 40 pixels
             for a in aliens:
                 a.sety(a.ycor() - 40)
-        # Checks if the alien reaches the bottom of the screen
+        # If alien goes too low, game over
         if alien.ycor() < -300:
-            global game_on
             game_on = False
             game_over_sound.play()
 
-# Créer un laser (player lasers)
+###############################################################################
+# Laser Setup
+###############################################################################
 def create_laser():
+    """
+    Create a laser from the cannon if enough time has passed since last shot.
+    The laser travels upward.
+    """
     global last_cannon_shot_time
-    current_time = time.time()
-    if current_time - last_cannon_shot_time >= CANNON_FIRE_RATE:
+    now = time.time()
+    if now - last_cannon_shot_time >= CANNON_FIRE_RATE:
         laser = turtle.Turtle()
         laser.penup()
         laser.color("red")
@@ -162,13 +208,15 @@ def create_laser():
         laser.shapesize(stretch_wid=0.5, stretch_len=2)
         laser.setheading(90)
         laser.setposition(cannon.xcor(), cannon.ycor() + 20)
-        lasers.append(laser)  # Ajouter le laser à la liste des lasers
-        last_cannon_shot_time = current_time
+        lasers.append(laser)
+        last_cannon_shot_time = now
         pew_sound.play()
         return laser
 
-# Creates an alien, laser, code was stolen from above with some tweaks
 def create_alien_laser(alien):
+    """
+    Create a downward-traveling laser from a chosen alien.
+    """
     alien_laser = turtle.Turtle()
     alien_laser.penup()
     alien_laser.color("yellow")
@@ -179,22 +227,25 @@ def create_alien_laser(alien):
     alien_lasers.append(alien_laser)
     pew_sound.play()
 
-# Déplacer les lasers
 def move_lasers():
-    # move player lasers
+    """
+    Move player lasers upward; remove them if they go off-screen.
+    """
     for laser in lasers[:]:
         laser.forward(LASER_SPEED)
-        # Retirer les lasers qui sortent de l’écran
         if laser.ycor() > window.window_height() / 2:
             laser.clear()
             laser.hideturtle()
             lasers.remove(laser)
 
 def move_alien_lasers():
+    """
+    Move alien lasers downward; remove them if off-screen.
+    If a laser hits the cannon, reduce life.
+    """
     global LIVES, game_on
     for alien_laser in alien_lasers[:]:
         alien_laser.forward(LASER_SPEED)
-
         if alien_laser.ycor() < -300:
             alien_laser.hideturtle()
             alien_lasers.remove(alien_laser)
@@ -207,45 +258,61 @@ def move_alien_lasers():
                 game_on = False
                 game_over_sound.play()
 
-# Checks if a laser(player laser) and an alien touch, if so then both are removed and explosion is played
+###############################################################################
+# Collisions & Explosions
+###############################################################################
 window.addshape("explosion.gif")
 
 def check_collision():
+    """
+    For each player laser, check collision with each alien.
+    If collided, remove both from screen and increment score + show explosion.
+    """
     global SCORE
     for laser in lasers[:]:
         for alien in aliens[:]:
-            distance = laser.distance(alien)
-            if distance < DETECTION_RADIUS:
+            if laser.distance(alien) < DETECTION_RADIUS:
                 laser.hideturtle()
                 alien.hideturtle()
                 SCORE += 10
                 collision_sound.play()
+                # Explosion effect
                 explosion = turtle.Turtle()
                 explosion.shape("explosion.gif")
                 explosion.penup()
                 explosion.setposition(alien.xcor(), alien.ycor())
                 explosion.showturtle()
                 window.update()
-                window.ontimer(lambda: explosion.hideturtle(), 200)  # Use a lambda instead of sleep to avoid freezing the game
+                # Hide explosion after a short delay
+                window.ontimer(lambda: explosion.hideturtle(), 200)
                 lasers.remove(laser)
                 aliens.remove(alien)
                 break
 
-# Déplacer le canon vers la gauche
+###############################################################################
+# Cannon Movement
+###############################################################################
 def move_left():
+    """
+    Move cannon left, ensuring it doesn't go out of the screen.
+    """
     new_x = cannon.xcor() - CANNON_SPEED
-    if new_x >= - window.window_width() / 2 + 20:  # Garder le canon dans l’écran
+    if new_x >= - (window.window_width()/2) + 20:
         cannon.setx(new_x)
-        part2.setx(new_x)  # Déplacer aussi la partie supérieure
+        cannon_top.setx(new_x)
 
-# Déplacer le canon vers la droite
 def move_right():
+    """
+    Move cannon right, ensuring it doesn't go out of the screen.
+    """
     new_x = cannon.xcor() + CANNON_SPEED
-    if new_x <= window.window_width() / 2 - 20:
+    if new_x <= (window.window_width()/2) - 20:
         cannon.setx(new_x)
-        part2.setx(new_x)  # Déplacer aussi la partie supérieure
+        cannon_top.setx(new_x)
 
-# Player inputs
+###############################################################################
+# Key Bindings
+###############################################################################
 window.listen()
 window.onkeypress(move_left, "Left")
 window.onkeypress(move_right, "Right")
@@ -253,11 +320,17 @@ window.onkeyrelease(lambda: None, "Left")
 window.onkeyrelease(lambda: None, "Right")
 window.onkeypress(create_laser, "space")
 
-# SO MANY GLOBALS
+###############################################################################
+# Difficulty Menu
+###############################################################################
 def difficulty_menu():
-    global ALIEN_SPEED, ALIEN_SPAWN_INTERVAL, LASER_SPEED, DIFFICULTY_LEVEL, CANNON_FIRE_RATE, ALIEN_FIRE_RATE
+    """
+    Display a menu with 3 difficulty buttons: EASY, NORMAL, HARD.
+    Each has different speeds & rates for alien/player behaviors.
+    """
+    global ALIEN_SPEED, ALIEN_SPAWN_INTERVAL, LASER_SPEED
+    global DIFFICULTY_LEVEL, CANNON_FIRE_RATE, ALIEN_FIRE_RATE
 
-    # Affichage du logo "Space Invaders"
     logo = turtle.Turtle()
     logo.hideturtle()
     logo.color("yellow")
@@ -265,56 +338,50 @@ def difficulty_menu():
     logo.setposition(0, 200)
     logo.write("SPACE INVADERS", align="center", font=("Courier", 30, "bold"))
 
-    # Buttons for difficulty selection, quite shrimple really
-    button1 = turtle.Turtle()
-    button1.shape("square")
-    button1.color("green")
-    button1.shapesize(stretch_wid=2.5, stretch_len=5)
-    button1.penup()
-    button1.setposition(-150, 0)
+    def create_button(x, y, color):
+        btn = turtle.Turtle()
+        btn.shape("square")
+        btn.color(color)
+        btn.shapesize(stretch_wid=2.5, stretch_len=5)
+        btn.penup()
+        btn.setposition(x, y)
+        return btn
 
-    button2 = turtle.Turtle()
-    button2.shape("square")
-    button2.color("orange")
-    button2.shapesize(stretch_wid=2.5, stretch_len=5)
-    button2.penup()
-    button2.setposition(0, 0)
-
-    button3 = turtle.Turtle()
-    button3.shape("square")
-    button3.color("red")
-    button3.shapesize(stretch_wid=2.5, stretch_len=5)
-    button3.penup()
-    button3.setposition(150, 0)
+    button1 = create_button(-150, 0, "green")
+    button2 = create_button(0, 0, "orange")
+    button3 = create_button(150, 0, "red")
 
     text = turtle.Turtle()
     text.hideturtle()
     text.color("white")
     text.penup()
     text.setposition(0, -50)
-    text.write("EASY      NORMAL      HARD", align="center", font=("Courier", 18, "normal")) # this spacing saves me so many line of code
+    text.write("EASY      NORMAL      HARD", align="center", font=("Courier", 18, "normal"))
 
-# function nesting, rarely used this
     def set_difficulty(level):
-        global ALIEN_SPEED, ALIEN_SPAWN_INTERVAL, LASER_SPEED, DIFFICULTY_LEVEL, CANNON_FIRE_RATE, ALIEN_FIRE_RATE
-        if level == 1:
-            ALIEN_SPEED = 0.25
-            ALIEN_SPAWN_INTERVAL = 3
-            LASER_SPEED = 1.2
-            CANNON_FIRE_RATE = 0.4
-            ALIEN_FIRE_RATE = 2.25
-        elif level == 2:
-            ALIEN_SPEED = 0.75
-            ALIEN_SPAWN_INTERVAL = 1
-            LASER_SPEED = 1
-            CANNON_FIRE_RATE = 0.5
-            ALIEN_FIRE_RATE = 1.75
-        elif level == 3:
-            ALIEN_SPEED = 0.8
-            ALIEN_SPAWN_INTERVAL = 1.75
-            LASER_SPEED = 0.6
-            CANNON_FIRE_RATE = 0.4
-            ALIEN_FIRE_RATE = 2
+        """
+        Apply different parameters for each difficulty level.
+        """
+        nonlocal DIFFICULTY_LEVEL
+        if level == 1:  # Easy
+            ALIEN_SPEED         = 0.25
+            ALIEN_SPAWN_INTERVAL= 3.0
+            LASER_SPEED         = 1.2
+            CANNON_FIRE_RATE    = 0.4
+            ALIEN_FIRE_RATE     = 2.25
+        elif level == 2:  # Normal
+            ALIEN_SPEED         = 0.75
+            ALIEN_SPAWN_INTERVAL= 1.0
+            LASER_SPEED         = 1.0
+            CANNON_FIRE_RATE    = 0.5
+            ALIEN_FIRE_RATE     = 1.75
+        else:  # Hard
+            ALIEN_SPEED         = 0.8
+            ALIEN_SPAWN_INTERVAL= 1.75
+            LASER_SPEED         = 0.6
+            CANNON_FIRE_RATE    = 0.4
+            ALIEN_FIRE_RATE     = 2.0
+
         DIFFICULTY_LEVEL = level
         logo.clear()
         text.clear()
@@ -322,59 +389,75 @@ def difficulty_menu():
         button2.hideturtle()
         button3.hideturtle()
 
-    button1.onclick(lambda x, y: set_difficulty(1)) # I love lambdas
+    button1.onclick(lambda x, y: set_difficulty(1))
     button2.onclick(lambda x, y: set_difficulty(2))
     button3.onclick(lambda x, y: set_difficulty(3))
 
+    # Wait until difficulty chosen
     while DIFFICULTY_LEVEL == 0:
         window.update()
         time.sleep(0.01)
 
+# Show difficulty menu before starting
 difficulty_menu()
 
-# Boucle du jeu
+###############################################################################
+# Main Game Loop
+###############################################################################
 alien_timer = time.time()
-while game_on == True:
+
+while game_on:
+    # Spawn aliens at intervals
     if time.time() - alien_timer > ALIEN_SPAWN_INTERVAL:
         create_alien()
         alien_timer = time.time()
 
-    # Alien shooting logic
+    # Alien shooting at intervals
     current_time = time.time()
-    if current_time - alien_last_shot_time > ALIEN_FIRE_RATE:
-        if aliens:
-            shooting_alien = random.choice(aliens)
-            create_alien_laser(shooting_alien)
-            alien_last_shot_time = current_time
+    if current_time - alien_last_shot_time > ALIEN_FIRE_RATE and aliens:
+        shooting_alien = random.choice(aliens)
+        create_alien_laser(shooting_alien)
+        alien_last_shot_time = current_time
 
-    # Calling everything else
-    move_alien_lasers()
+    # Move objects and check collisions
     move_aliens()
     move_lasers()
+    move_alien_lasers()
     check_collision()
+
+    # Update UI & refresh
     update_display()
     window.update()
 
-# Afficher "Game Over"
-game_over = turtle.Turtle()
-game_over.color("red")
-game_over.hideturtle()
-game_over.write("GAME OVER", align="center", font=("Courier", 40, "bold"))
+###############################################################################
+# Game Over Screen
+###############################################################################
+game_over_display = turtle.Turtle()
+game_over_display.color("red")
+game_over_display.hideturtle()
+game_over_display.write("GAME OVER", align="center", font=("Courier", 40, "bold"))
 
-# Afficher le score final
-game_over.sety(game_over.ycor() - 50)
-game_over.color("red")
-game_over.hideturtle()
-game_over.write(f"Score: {SCORE}", align="center", font=("Courier", 30, "bold"))
+game_over_display.sety(game_over_display.ycor() - 50)
+game_over_display.color("red")
+game_over_display.write(f"Score: {SCORE}", align="center", font=("Courier", 30, "bold"))
 
 window.update()
 
-# Saves score in a .json file
+###############################################################################
+# Save Score to JSON
+###############################################################################
 def save_score():
+    """
+    Save the player's name, final score, and difficulty to a JSON file.
+    Creates or overwrites 'highscore.json'.
+    """
+    data = {
+        "player_username": player_name,
+        "highscore": SCORE,
+        "difficulty_level": DIFFICULTY_LEVEL
+    }
     with open("highscore.json", "w") as f:
-        json.dump({"player_username": player_name}, f)
-        json.dump({"highscore": SCORE}, f)
-        json.dump({"difficulty_level": DIFFICULTY_LEVEL}, f)
-save_score()
+        json.dump(data, f, indent=2)
 
+save_score()
 turtle.done()
